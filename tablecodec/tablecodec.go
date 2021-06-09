@@ -72,7 +72,32 @@ func EncodeRowKeyWithHandle(tableID int64, handle int64) kv.Key {
 // DecodeRecordKey decodes the key and gets the tableID, handle.
 func DecodeRecordKey(key kv.Key) (tableID int64, handle int64, err error) {
 	/* Your code here */
-	return
+	if len(key) <= len(tablePrefix) {
+		return -1, -1, errors.New("Error")
+	}
+	// if (key[len(tablePrefix)] > '9' || key[len(tablePrefix)] < '0') && key[len(recordPrefixSep)] != ' '  {
+	// 	fmt.Printf(string(key[len(tablePrefix)]))
+	// 	return -1, -1, errors.New("Error")
+	// }
+	key, tableID, err = codec.DecodeInt(key[len(tablePrefix):])
+	if err != nil {
+		return -1, -1, err
+	}
+	if len(key) <= len(recordPrefixSep) {
+		return -1, -1, errors.New("Error")
+	}
+	// if (key[len(recordPrefixSep)] > '9' || key[len(recordPrefixSep)] < '0') && key[len(recordPrefixSep)] != ' ' {
+	// 	fmt.Printf(string(key[len(recordPrefixSep)]))
+	// 	return -1, -1, errors.New("Error")
+	// }
+	key, handle, err = codec.DecodeInt(key[len(recordPrefixSep):])
+	if err != nil {
+		return -1, -1, err
+	}
+	if tableID > math.MaxUint32 || tableID < math.MinInt32 || handle > math.MaxUint32 || handle < math.MinInt32 {
+		return -1, -1, errors.New("Error")
+	}
+	return tableID, handle, err
 }
 
 // appendTableIndexPrefix appends table index prefix  "t[tableID]_i".
@@ -95,7 +120,15 @@ func EncodeIndexSeekKey(tableID int64, idxID int64, encodedValue []byte) kv.Key 
 // DecodeIndexKeyPrefix decodes the key and gets the tableID, indexID, indexValues.
 func DecodeIndexKeyPrefix(key kv.Key) (tableID int64, indexID int64, indexValues []byte, err error) {
 	/* Your code here */
-	return tableID, indexID, indexValues, nil
+	key, tableID, err = codec.DecodeInt(key[len(tablePrefix):])
+	if err != nil {
+		return -1, -1, key, err
+	}
+	indexValues, indexID, err = codec.DecodeInt(key[len(indexPrefixSep):])
+	if err != nil {
+		return -1, -1, indexValues, err
+	}
+	return tableID, indexID, indexValues, err
 }
 
 // DecodeIndexKey decodes the key and gets the tableID, indexID, indexValues.
